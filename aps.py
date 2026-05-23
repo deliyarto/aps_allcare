@@ -22,8 +22,8 @@ st.markdown("Aplikasi Manajemen Operasional Tagihan Unit/RS kepada Yakes Pertami
 # ttl=1800 berarti cache otomatis kadaluarsa setiap 30 menit
 @st.cache_data(ttl=1800)
 def load_data(file_mtime):
-    # Parameter file_mtime memastikan fungsi ini berjalan ulang JIKA file excel di-replace
-    df = pd.read_excel("data/aps.xlsx", sheet_name="Sheet1")
+    # Parameter file_mtime memastikan fungsi ini berjalan ulang JIKA file csv di-replace
+    df = pd.read_csv("data/aps.csv", sep=";", encoding="utf-8-sig")
     
     df = df.rename(columns={'Total Bayar': 'Total Tagihan'})
     df['Tanggal Ajuan'] = pd.to_datetime(df['Tanggal Ajuan'])
@@ -68,13 +68,13 @@ def format_short_idr(x):
     else: return f"{x:,.0f}"
 
 # EKSEKUSI PEMBACAAN FILE DENGAN DETEKSI PERUBAHAN
-file_path = "data/aps.xlsx"
+file_path = "data/aps.csv"
 try:
-    # Mengambil waktu kapan file excel terakhir kali di-replace/di-save
+    # Mengambil waktu kapan file csv terakhir kali di-replace/di-save
     current_mtime = os.path.getmtime(file_path)
     df_raw = load_data(current_mtime)
 except FileNotFoundError:
-    st.error("File Excel tidak ditemukan! Pastikan file 'aps.xlsx' berada di dalam folder 'data/'.")
+    st.error("File CSV tidak ditemukan! Pastikan file 'aps.csv' berada di dalam folder 'data/'.")
     st.stop()
 
 # ==========================================
