@@ -13,6 +13,44 @@ STATUS_AMAN = ["Pembayaran Berhasil", "Ditolak", "Klaim Selesai"]
 # KONFIGURASI HALAMAN
 # ==========================================
 st.set_page_config(page_title="Dashboard Klaim Yakes Pertamina", page_icon="🏥", layout="wide")
+
+# ==========================================
+# 0. SISTEM LOGIN
+# ==========================================
+def check_login(username, password):
+    """Verifikasi username & password terhadap daftar di st.secrets."""
+    users = st.secrets.get("users", {})
+    return users.get(username) == password
+
+def show_login_page():
+    """Tampilkan halaman login."""
+    col1, col2, col3 = st.columns([1, 1.5, 1])
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("## 🏥 Dashboard Klaim Yakes Pertamina")
+        st.markdown("Silakan login untuk melanjutkan.")
+        st.divider()
+        username = st.text_input("Username", placeholder="Masukkan username")
+        password = st.text_input("Password", type="password", placeholder="Masukkan password")
+        if st.button("Login", use_container_width=True, type="primary"):
+            if check_login(username, password):
+                st.session_state["logged_in"] = True
+                st.session_state["username"] = username
+                st.rerun()
+            else:
+                st.error("Username atau password salah.")
+
+# Cek status login
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+if not st.session_state["logged_in"]:
+    show_login_page()
+    st.stop()
+
+# ==========================================
+# KONTEN UTAMA (hanya tampil setelah login)
+# ==========================================
 st.title("🏥 Dashboard Monitoring & Pengingat Klaim RS")
 st.markdown("Aplikasi Manajemen Operasional Tagihan Unit/RS kepada Yakes Pertamina.")
 
@@ -80,6 +118,12 @@ except FileNotFoundError:
 # ==========================================
 # 2. LOGIKA FILTERING (SIDEBAR)
 # ==========================================
+st.sidebar.markdown(f"👤 Login sebagai: **{st.session_state['username']}**")
+if st.sidebar.button("Logout", use_container_width=True):
+    st.session_state["logged_in"] = False
+    st.session_state["username"] = ""
+    st.rerun()
+st.sidebar.divider()
 st.sidebar.header("⚙️ Filter Utama (AND)")
 
 list_unit = ["Semua Unit"] + list(df_raw['unit'].dropna().unique())
