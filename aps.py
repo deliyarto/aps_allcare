@@ -405,9 +405,9 @@ with tab1:
             df_gap_display = df_gap[['unit', 'Total_Tagihan', 'Nilai_Layak_Bayar', 'Gap_Nominal', 'Persen_Gap', 'Akurasi_Penyerapan']].copy()
             df_gap_display.columns = ['Unit / RS', 'Total Tagihan', 'Nilai Layak Bayar', 'Gap Nominal', 'Gap (%)', 'Akurasi (%)']
             df_gap_display = df_gap_display.sort_values('Gap (%)', ascending=False).reset_index(drop=True)
-            df_gap_display['Total Tagihan'] = df_gap_display['Total Tagihan'].apply(format_idr)
-            df_gap_display['Nilai Layak Bayar'] = df_gap_display['Nilai Layak Bayar'].apply(format_idr)
-            df_gap_display['Gap Nominal'] = df_gap_display['Gap Nominal'].apply(format_idr)
+            df_gap_display['Total Tagihan'] = df_gap_display['Total Tagihan'].apply(fmt_rp)
+            df_gap_display['Nilai Layak Bayar'] = df_gap_display['Nilai Layak Bayar'].apply(fmt_rp)
+            df_gap_display['Gap Nominal'] = df_gap_display['Gap Nominal'].apply(fmt_rp)
             df_gap_display['Gap (%)'] = df_gap_display['Gap (%)'].apply(lambda x: f"{x:.2f}%")
             df_gap_display['Akurasi (%)'] = df_gap_display['Akurasi (%)'].apply(lambda x: f"{x:.2f}%")
             st.dataframe(df_gap_display, use_container_width=True, hide_index=True)
