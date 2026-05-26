@@ -129,7 +129,7 @@ st.sidebar.header("⚙️ Filter Utama (AND)")
 list_unit = ["Semua Unit"] + list(df_raw['unit'].dropna().unique())
 filter_unit = st.sidebar.selectbox("Pilih Unit / Rumah Sakit:", list_unit)
 
-list_periode = ["Semua Waktu", "Tahun Ini", "Bulan Ini", "Bulan Lalu", "Pekan Ini", "Pekan Lalu", "Pilih Tanggal (Kustom)"]
+list_periode = ["Semua Waktu", "Tahun Ini", "Tahun Lalu", "Bulan Ini", "Bulan Lalu", "Pekan Ini", "Pekan Lalu", "Pilih Tanggal (Kustom)"]
 filter_periode = st.sidebar.selectbox("Pilih Periode Ajuan:", list_periode)
 
 rentang_tanggal = None
@@ -160,6 +160,8 @@ curr_iso_year, curr_iso_week, _ = today_date.isocalendar()
 
 if filter_periode == "Tahun Ini":
     df_filtered = df_filtered[df_filtered['Tahun'] == curr_year]
+elif filter_periode == "Tahun Lalu":
+    df_filtered = df_filtered[df_filtered['Tahun'] == curr_year - 1]
 elif filter_periode == "Bulan Ini":
     df_filtered = df_filtered[(df_filtered['Tahun'] == curr_year) & (df_filtered['Bulan'] == curr_month)]
 elif filter_periode == "Bulan Lalu":
