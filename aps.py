@@ -255,9 +255,78 @@ with tab1:
         if not df_filtered.empty:
             df_trend = df_filtered.groupby('Tanggal Ajuan')[['Total Tagihan', 'Nilai Layak Bayar']].sum().reset_index()
             df_trend = df_trend.sort_values('Tanggal Ajuan')
-            fig4 = px.line(df_trend, x='Tanggal Ajuan', y=['Total Tagihan', 'Nilai Layak Bayar'], labels={'value': 'Nominal (IDR)', 'variable': 'Kategori'}, color_discrete_map={'Total Tagihan': '#E74C3C', 'Nilai Layak Bayar': '#2ECC71'})
-            fig4.update_layout(hovermode="x unified")
+
+            # Hitung Gap Nominal & Persentase Gap per tanggal
+            df_trend['Gap_Nominal'] = df_trend['Total Tagihan'] - df_trend['Nilai Layak Bayar']
+            df_trend['Persen_Gap'] = (df_trend['Gap_Nominal'] / df_trend['Total Tagihan'] * 100).round(2)
+
+            # Hitung nilai rerata keseluruhan (garis horizontal)
+            rerata_tagihan = df_trend['Total Tagihan'].mean()
+            rerata_layak = df_trend['Nilai Layak Bayar'].mean()
+
+            # Buat figure dengan dual y-axis
+            from plotly.subplots import make_subplots
+            import plotly.graph_objects as go
+
+            fig4 = make_subplots(specs=[[{"secondary_y": True}]])
+
+            # Garis utama: Total Tagihan
+            fig4.add_trace(go.Scatter(
+                x=df_trend['Tanggal Ajuan'], y=df_trend['Total Tagihan'],
+                name='Total Tagihan', mode='lines+markers',
+                line=dict(color='#E74C3C', width=2),
+                customdata=df_trend[['Gap_Nominal', 'Persen_Gap']].values,
+                hovertemplate="<b>Total Tagihan:</b> %{y:,.0f}<br><b>Gap Nominal:</b> %{customdata[0]:,.0f}<br><b>Gap %%:</b> %{customdata[1]:.2f}%%<extra></extra>"
+            ), secondary_y=False)
+
+            # Garis utama: Nilai Layak Bayar
+            fig4.add_trace(go.Scatter(
+                x=df_trend['Tanggal Ajuan'], y=df_trend['Nilai Layak Bayar'],
+                name='Nilai Layak Bayar', mode='lines+markers',
+                line=dict(color='#2ECC71', width=2),
+                hovertemplate="<b>Nilai Layak Bayar:</b> %{y:,.0f}<extra></extra>"
+            ), secondary_y=False)
+
+            # Garis rerata: Total Tagihan (dashed)
+            fig4.add_hline(
+                y=rerata_tagihan, line_dash="dash", line_color="#E74C3C", opacity=0.5,
+                annotation_text=f"Rerata Tagihan: {format_short_idr(rerata_tagihan)}",
+                annotation_position="top left",
+                annotation_font_color="#E74C3C"
+            )
+
+            # Garis rerata: Nilai Layak Bayar (dashed)
+            fig4.add_hline(
+                y=rerata_layak, line_dash="dash", line_color="#2ECC71", opacity=0.5,
+                annotation_text=f"Rerata Layak Bayar: {format_short_idr(rerata_layak)}",
+                annotation_position="bottom left",
+                annotation_font_color="#2ECC71"
+            )
+
+            # Garis Gap % pada sumbu Y kanan
+            fig4.add_trace(go.Scatter(
+                x=df_trend['Tanggal Ajuan'], y=df_trend['Persen_Gap'],
+                name='Gap (%)', mode='lines+markers',
+                line=dict(color='#F39C12', width=1.5, dash='dot'),
+                marker=dict(symbol='diamond', size=6),
+                hovertemplate="<b>Gap %%:</b> %{y:.2f}%%<extra></extra>"
+            ), secondary_y=True)
+
+            fig4.update_layout(
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            fig4.update_yaxes(title_text="Nominal (IDR)", secondary_y=False)
+            fig4.update_yaxes(title_text="Gap (%)", secondary_y=True, ticksuffix="%", range=[0, max(df_trend['Persen_Gap'].max() * 1.5, 10)])
+
             st.plotly_chart(fig4, use_container_width=True)
+
+            # Mini KPI rerata di bawah chart
+            ka, kb, kc = st.columns(3)
+            rerata_gap_pct = df_trend['Persen_Gap'].mean()
+            ka.metric("Rerata Total Tagihan", format_short_idr(rerata_tagihan))
+            kb.metric("Rerata Layak Bayar", format_short_idr(rerata_layak))
+            kc.metric("Rerata Gap (%)", f"{rerata_gap_pct:.2f}%")
         else:
             st.info("Data tidak tersedia.")
 
@@ -272,6 +341,73 @@ with tab1:
         )
         fig5.update_layout(yaxis={'categoryorder': 'total ascending'}, hovermode="y unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         st.plotly_chart(fig5, use_container_width=True)
+    else:
+        st.info("Data tidak tersedia.")
+
+    st.markdown("---")
+    st.subheader("6. Ranking Akurasi Penyerapan & Gap Pemotongan per Unit")
+    st.caption("Diurutkan dari Persentase Gap (pemotongan) terbesar ke terkecil. Warna bar mencerminkan Akurasi Penyerapan (🔴 Rendah → 🟢 Tinggi).")
+    if not df_filtered.empty and df_filtered['Total Tagihan'].sum() > 0:
+        df_gap = df_filtered.groupby('unit').agg(
+            Total_Tagihan=('Total Tagihan', 'sum'),
+            Nilai_Layak_Bayar=('Nilai Layak Bayar', 'sum')
+        ).reset_index()
+        df_gap['Gap_Nominal'] = df_gap['Total_Tagihan'] - df_gap['Nilai_Layak_Bayar']
+        df_gap['Persen_Gap'] = (df_gap['Gap_Nominal'] / df_gap['Total_Tagihan'] * 100).round(2)
+        df_gap['Akurasi_Penyerapan'] = (df_gap['Nilai_Layak_Bayar'] / df_gap['Total_Tagihan'] * 100).round(2)
+        df_gap = df_gap[df_gap['Total_Tagihan'] > 0].sort_values('Persen_Gap', ascending=True)
+
+        df_gap['hover_text'] = df_gap.apply(lambda r: (
+            f"<b>{r['unit']}</b><br>"
+            f"Total Tagihan: {format_idr(r['Total_Tagihan'])}<br>"
+            f"Nilai Layak Bayar: {format_idr(r['Nilai_Layak_Bayar'])}<br>"
+            f"Gap Nominal: {format_idr(r['Gap_Nominal'])}<br>"
+            f"Persentase Gap: {r['Persen_Gap']:.2f}%<br>"
+            f"Akurasi Penyerapan: {r['Akurasi_Penyerapan']:.2f}%"
+        ), axis=1)
+
+        fig6 = px.bar(
+            df_gap,
+            y='unit',
+            x='Persen_Gap',
+            orientation='h',
+            color='Akurasi_Penyerapan',
+            color_continuous_scale='RdYlGn',
+            range_color=[0, 100],
+            labels={
+                'unit': 'Unit / Rumah Sakit',
+                'Persen_Gap': 'Persentase Gap (%)',
+                'Akurasi_Penyerapan': 'Akurasi Penyerapan (%)'
+            },
+            custom_data=['hover_text']
+        )
+        fig6.update_traces(
+            hovertemplate="%{customdata[0]}<extra></extra>",
+            text=df_gap['Persen_Gap'].apply(lambda x: f"{x:.1f}%"),
+            textposition='outside'
+        )
+        fig6.update_layout(
+            xaxis_title="Persentase Gap / Pemotongan (%)",
+            xaxis=dict(range=[0, df_gap['Persen_Gap'].max() * 1.2]),
+            coloraxis_colorbar=dict(
+                title="Akurasi (%)",
+                tickvals=[0, 25, 50, 75, 100],
+                ticktext=["0%", "25%", "50%", "75%", "100%"]
+            ),
+            hovermode='y unified'
+        )
+        st.plotly_chart(fig6, use_container_width=True)
+
+        with st.expander("📋 Lihat Tabel Detail Akurasi & Gap per Unit"):
+            df_gap_display = df_gap[['unit', 'Total_Tagihan', 'Nilai_Layak_Bayar', 'Gap_Nominal', 'Persen_Gap', 'Akurasi_Penyerapan']].copy()
+            df_gap_display.columns = ['Unit / RS', 'Total Tagihan', 'Nilai Layak Bayar', 'Gap Nominal', 'Gap (%)', 'Akurasi (%)']
+            df_gap_display = df_gap_display.sort_values('Gap (%)', ascending=False).reset_index(drop=True)
+            df_gap_display['Total Tagihan'] = df_gap_display['Total Tagihan'].apply(format_idr)
+            df_gap_display['Nilai Layak Bayar'] = df_gap_display['Nilai Layak Bayar'].apply(format_idr)
+            df_gap_display['Gap Nominal'] = df_gap_display['Gap Nominal'].apply(format_idr)
+            df_gap_display['Gap (%)'] = df_gap_display['Gap (%)'].apply(lambda x: f"{x:.2f}%")
+            df_gap_display['Akurasi (%)'] = df_gap_display['Akurasi (%)'].apply(lambda x: f"{x:.2f}%")
+            st.dataframe(df_gap_display, use_container_width=True, hide_index=True)
     else:
         st.info("Data tidak tersedia.")
 
