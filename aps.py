@@ -357,11 +357,14 @@ with tab1:
         df_gap['Akurasi_Penyerapan'] = (df_gap['Nilai_Layak_Bayar'] / df_gap['Total_Tagihan'] * 100).round(2)
         df_gap = df_gap[df_gap['Total_Tagihan'] > 0].sort_values('Persen_Gap', ascending=True)
 
+        def fmt_rp(x):
+            return f"Rp {x:,.0f}".replace(",", ".")
+
         df_gap['hover_text'] = df_gap.apply(lambda r: (
             f"<b>{r['unit']}</b><br>"
-            f"Total Tagihan: {format_idr(r['Total_Tagihan'])}<br>"
-            f"Nilai Layak Bayar: {format_idr(r['Nilai_Layak_Bayar'])}<br>"
-            f"Gap Nominal: {format_idr(r['Gap_Nominal'])}<br>"
+            f"Total Tagihan: {fmt_rp(r['Total_Tagihan'])}<br>"
+            f"Nilai Layak Bayar: {fmt_rp(r['Nilai_Layak_Bayar'])}<br>"
+            f"Gap Nominal: {fmt_rp(r['Gap_Nominal'])}<br>"
             f"Persentase Gap: {r['Persen_Gap']:.2f}%<br>"
             f"Akurasi Penyerapan: {r['Akurasi_Penyerapan']:.2f}%"
         ), axis=1)
