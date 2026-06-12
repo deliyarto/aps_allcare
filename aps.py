@@ -126,8 +126,8 @@ if st.sidebar.button("Logout", use_container_width=True):
 st.sidebar.divider()
 st.sidebar.header("⚙️ Filter Utama (AND)")
 
-list_unit = ["Semua Unit"] + list(df_raw['unit'].dropna().unique())
-filter_unit = st.sidebar.selectbox("Pilih Unit / Rumah Sakit:", list_unit)
+list_unit = sorted(list(df_raw['unit'].dropna().unique()))
+filter_unit = st.sidebar.multiselect("Pilih Unit / Rumah Sakit:", options=list_unit, default=list_unit, placeholder="Pilih satu atau lebih unit...")
 
 list_periode = ["Semua Waktu", "Tahun Ini", "Tahun Lalu", "Bulan Ini", "Bulan Lalu", "Pekan Ini", "Pekan Lalu", "Pilih Tanggal (Kustom)"]
 filter_periode = st.sidebar.selectbox("Pilih Periode Ajuan:", list_periode)
@@ -150,8 +150,8 @@ if st.sidebar.button("🔄 Segarkan Data Sekarang", use_container_width=True):
 # -- PROSES PENYARINGAN DATA --
 df_filtered = df_raw.copy()
 
-if filter_unit != "Semua Unit":
-    df_filtered = df_filtered[df_filtered['unit'] == filter_unit]
+if filter_unit:
+    df_filtered = df_filtered[df_filtered['unit'].isin(filter_unit)]
 
 today_date = datetime.date.today()
 curr_year = today_date.year
